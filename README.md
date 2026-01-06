@@ -8,6 +8,15 @@ In the project directory, you can run:
 
 ### `npm start`
 
+Atualizar o firebase para versão mais recente
+### npm install firebase@latest
+
+Atualizar tudo que for possível sem quebrar versões
+### npm update
+
+Se o projeto estiver muito desatualizado:
+### npm install
+
 Runs the app in the development mode.\
 Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
