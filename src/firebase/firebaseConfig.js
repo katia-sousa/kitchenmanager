@@ -6,13 +6,13 @@ import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD_a2jwBTx-9u3wNauFXWl2CrBQV4l3oMU",
-  authDomain: "kitchenmanager-80fb3.firebaseapp.com",
-  projectId: "kitchenmanager-80fb3",
-  storageBucket: "kitchenmanager-80fb3.appspot.com",
-  messagingSenderId: "628888454941",
-  appId: "1:628888454941:web:0fd9d23ed00508eb1ec3f4",
-  measurementId: "G-GVSDPV6Z7S"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
