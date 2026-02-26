@@ -21,8 +21,13 @@ export default function Login() {
       }
 
       const userData = userDoc.data();
-      if (userData.tipo === "admin") navigate("/admin");
-      else navigate("/painel-colaborador");
+      if (userData.tipo === "admin") {
+        navigate("/admin");
+      } else if (userData.role === "nutricionista") {
+        navigate("/home-nutricionista");
+      } else {
+        navigate("/painel-colaborador");
+      }
     } catch (error) {
       alert("Erro ao fazer login: " + error.message);
     }

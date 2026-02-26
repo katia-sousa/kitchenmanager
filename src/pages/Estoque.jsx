@@ -2,6 +2,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import { listarCategorias } from "../services/categoriaService";
@@ -16,7 +17,7 @@ import {
 function Estoque() {
   const { userData } = useAuth();
   const userTipo = userData?.tipo;
-  const estabelecimentoId = userData?.estabelecimentoId;
+  const { estabelecimentoId } = useParams(); // ✅ FONTE ÚNICA E CONFIÁVEL
 
   const [produtos, setProdutos] = useState([]);
   const [categorias, setCategorias] = useState([]);

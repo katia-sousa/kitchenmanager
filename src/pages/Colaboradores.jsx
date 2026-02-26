@@ -1,234 +1,282 @@
-// src/pages/Colaboradores.jsx
-import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   query,
   updateDoc,
-  where
+  where,
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { useEffect, useState } from "react";
-import { auth, db } from "../firebase/firebaseConfig";
+import { useCallback, useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { db } from "../firebase/firebaseConfig";
 
 export default function Colaboradores() {
+  const { userData } = useAuth();
+
   const [colaboradores, setColaboradores] = useState([]);
   const [nome, setNome] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [telefone, setTelefone] = useState("");
   const [tipo, setTipo] = useState("colaborador");
   const [estabelecimento, setEstabelecimento] = useState(null);
   const [mensagem, setMensagem] = useState("");
+
   const [editando, setEditando] = useState(null);
   const [editNome, setEditNome] = useState("");
+  const [editCpf, setEditCpf] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editTelefone, setEditTelefone] = useState("");
 
-  // Funções do Firebase
   const functions = getFunctions(undefined, "southamerica-east1");
+  const resetarSenhaFn = httpsCallable(functions, "resetarSenhaColaborador");
   const criarColaboradorFn = httpsCallable(functions, "criarColaborador");
 
-  // Carrega o admin e seu estabelecimento
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) carregarEstabelecimento(user.uid);
+  // 🔍 Carregar usuários do estabelecimento
+  const carregarTodosUsuarios = useCallback(async (estabelecimentoId) => {
+    const lista = [];
+
+    // 👥 usuários vinculados direto
+    const qUsuarios = query(
+      collection(db, "usuarios"),
+      where("estabelecimentos", "array-contains", estabelecimentoId),
+    );
+
+    const usuariosSnap = await getDocs(qUsuarios);
+    usuariosSnap.forEach((d) => {
+      lista.push({
+        id: d.id,
+        ...d.data(),
+        tipo: d.data().role || d.data().tipo,
+      });
     });
-    return () => unsub();
+
+    // 🥗 nutricionistas por vínculo
+    const qVinculos = query(
+      collection(db, "nutricionista_estabelecimentos"),
+      where("estabelecimentoId", "==", estabelecimentoId),
+    );
+
+    const vinculosSnap = await getDocs(qVinculos);
+    for (const v of vinculosSnap.docs) {
+      const nutricionistaId = v.data().nutricionistaId;
+      if (lista.find((u) => u.id === nutricionistaId)) continue;
+
+      const userSnap = await getDoc(doc(db, "usuarios", nutricionistaId));
+      if (userSnap.exists()) {
+        lista.push({
+          id: userSnap.id,
+          ...userSnap.data(),
+          tipo: "nutricionista",
+        });
+      }
+    }
+
+    setColaboradores(lista);
   }, []);
 
-  async function carregarEstabelecimento(uid) {
-    try {
-      const estQuery = query(
-        collection(db, "estabelecimentos"),
-        where("adminId", "==", uid)
+  // 🏢 Carregar estabelecimento do admin (OBRIGATÓRIO)
+  useEffect(() => {
+    const carregarEstabelecimento = async () => {
+      if (!userData?.uid) return;
+
+      const userSnap = await getDoc(doc(db, "usuarios", userData.uid));
+      if (!userSnap.exists()) return;
+
+      const estabelecimentosIds = userSnap.data().estabelecimentos || [];
+      if (estabelecimentosIds.length === 0) return;
+
+      const estSnap = await getDoc(
+        doc(db, "estabelecimentos", estabelecimentosIds[0]),
       );
-      const estSnap = await getDocs(estQuery);
-      if (!estSnap.empty) {
-        const est = estSnap.docs[0];
-        setEstabelecimento({ id: est.id, ...est.data() });
-        carregarColaboradores(est.id);
+
+      if (estSnap.exists()) {
+        const est = { id: estSnap.id, ...estSnap.data() };
+        setEstabelecimento(est);
+        carregarTodosUsuarios(est.id);
       }
-    } catch (err) {
-      console.error("Erro ao carregar estabelecimento:", err);
-      setMensagem("Erro ao carregar estabelecimento");
-    }
-  }
+    };
 
-  async function carregarColaboradores(estabelecimentoId) {
-    try {
-      const colQuery = query(
-        collection(db, "usuarios"),
-        where("estabelecimentoId", "==", estabelecimentoId)
-      );
-      const colSnap = await getDocs(colQuery);
-      setColaboradores(colSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-    } catch (err) {
-      console.error("Erro ao carregar colaboradores:", err);
-      setMensagem("Erro ao carregar colaboradores");
-    }
-  }
+    carregarEstabelecimento();
+  }, [userData, carregarTodosUsuarios]);
 
+  // ➕ Cadastro
   const handleCadastrar = async (e) => {
     e.preventDefault();
-    if (!estabelecimento) {
-      setMensagem("⚠️ Nenhum estabelecimento encontrado.");
-      return;
-    }
+    if (!estabelecimento) return;
+
     try {
-      await criarColaboradorFn({
+      const res = await criarColaboradorFn({
         nome,
+        cpf,
         email,
         telefone,
         tipo,
-        estabelecimentoId: estabelecimento.id
+        estabelecimentoId: estabelecimento.id,
       });
 
-      setMensagem(`✅ Usuário ${nome} cadastrado com sucesso!`);
-      setNome(""); setEmail(""); setTelefone(""); setTipo("colaborador");
+      setMensagem(`✅ ${res.data.mensagem}`);
 
-      carregarColaboradores(estabelecimento.id);
-    } catch (error) {
-      console.error("Erro criar colaborador:", error);
-      const msg = error?.message || "Erro interno ao criar colaborador";
-      setMensagem(`⚠️ ${msg}`);
+      setNome("");
+      setCpf("");
+      setEmail("");
+      setTelefone("");
+      setTipo("colaborador");
+
+      await carregarTodosUsuarios(estabelecimento.id);
+    } catch (err) {
+      console.error("Erro:", err);
+      if (
+        err.code === "already-exists" ||
+        err.code === "auth/email-already-exists"
+      ) {
+        setMensagem("❌ Este email já está cadastrado!");
+      } else {
+        setMensagem("❌ Erro ao cadastrar usuário");
+      }
     }
   };
-
-  const abrirEdicao = (col) => {
-    setEditando(col);
-    setEditNome(col.nome);
-    setEditEmail(col.email);
-    setEditTelefone(col.telefone);
+  const resetarSenha = async (uid) => {
+  try {
+    await resetarSenhaFn({ uidAlvo: uid });
+    setMensagem("Senha resetada com sucesso.");
+  } catch (error) {
+    console.error(error);
+    setMensagem("Erro ao resetar senha.");
+  }
+};
+  // ✏️ Editar
+  const abrirEdicao = (c) => {
+    setEditando(c);
+    setEditNome(c.nome);
+    setEditCpf(c.cpf || "");
+    setEditEmail(c.email || "");
+    setEditTelefone(c.telefone || "");
   };
 
   const salvarEdicao = async () => {
-    try {
-      await updateDoc(doc(db, "usuarios", editando.id), {
-        nome: editNome,
-        email: editEmail,
-        telefone: editTelefone
-      });
+    await updateDoc(doc(db, "usuarios", editando.id), {
+      nome: editNome,
+      cpf: editCpf,
+      email: editEmail,
+      telefone: editTelefone,
+    });
 
-      setColaboradores(prev =>
-        prev.map(c =>
-          c.id === editando.id
-            ? { ...c, nome: editNome, email: editEmail, telefone: editTelefone }
-            : c
-        )
-      );
-      setEditando(null);
-      setMensagem("✅ Colaborador atualizado com sucesso!");
-    } catch (err) {
-      console.error("Erro ao salvar edição:", err);
-      setMensagem("⚠️ Erro ao atualizar colaborador");
-    }
+    setEditando(null);
+    carregarTodosUsuarios(estabelecimento.id);
+    setMensagem("✅ Usuário atualizado");
   };
 
+  // ❌ Exclusões
   const excluirColaborador = async (id) => {
-    if (!window.confirm("Deseja realmente excluir este colaborador?")) return;
-    try {
-      await deleteDoc(doc(db, "usuarios", id));
-      setColaboradores(prev => prev.filter(c => c.id !== id));
-      setMensagem("✅ Colaborador excluído com sucesso!");
-    } catch (err) {
-      console.error("Erro ao excluir colaborador:", err);
-      setMensagem("⚠️ Erro ao excluir colaborador");
-    }
+    if (!window.confirm("Deseja excluir este usuário?")) return;
+    await deleteDoc(doc(db, "usuarios", id));
+    carregarTodosUsuarios(estabelecimento.id);
   };
 
-  // 🔑 Resetar senha para 123456 (apenas admin)
-  const resetarSenha = async (colaborador) => {
-    if (!window.confirm(`Deseja resetar a senha de ${colaborador.nome} para 123456?`)) return;
-    try {
-      await updateDoc(doc(db, "usuarios", colaborador.id), {
-        senha: "123456",
-        senhaAlterada: false // indica que ainda não trocou
-      });
-      setMensagem(`✅ Senha de ${colaborador.nome} resetada para 123456. Recomenda-se alterar após login.`);
-    } catch (err) {
-      console.error("Erro ao resetar senha:", err);
-      setMensagem("⚠️ Erro ao resetar senha");
+  const excluirVinculoNutricionista = async (nutricionistaId) => {
+    if (!window.confirm("Remover nutricionista deste estabelecimento?")) return;
+
+    const q = query(
+      collection(db, "nutricionista_estabelecimentos"),
+      where("nutricionistaId", "==", nutricionistaId),
+      where("estabelecimentoId", "==", estabelecimento.id),
+    );
+
+    const snap = await getDocs(q);
+    for (const d of snap.docs) {
+      await deleteDoc(d.ref);
     }
+
+    carregarTodosUsuarios(estabelecimento.id);
   };
 
   return (
     <div className="container mt-5">
       <h2>👥 Colaboradores</h2>
-      {estabelecimento && (
-        <p className="text-muted">
-          Estabelecimento: <strong>{estabelecimento.nome}</strong>
-        </p>
-      )}
 
-      {/* Formulário de cadastro */}
       <form onSubmit={handleCadastrar} className="mt-3">
         <input
           className="form-control mb-2"
-          placeholder="Nome completo"
+          placeholder="Nome"
           value={nome}
-          onChange={e => setNome(e.target.value)}
+          onChange={(e) => setNome(e.target.value)}
           required
         />
         <input
           className="form-control mb-2"
-          placeholder="E-mail"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          placeholder="CPF"
+          value={cpf}
+          onChange={(e) => setCpf(e.target.value)}
           required
+        />
+        <input
+          className="form-control mb-2"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <input
           className="form-control mb-2"
           placeholder="Telefone"
           value={telefone}
-          onChange={e => setTelefone(e.target.value)}
-          required
+          onChange={(e) => setTelefone(e.target.value)}
         />
+
         <select
           className="form-control mb-3"
           value={tipo}
-          onChange={e => setTipo(e.target.value)}
+          onChange={(e) => setTipo(e.target.value)}
         >
           <option value="colaborador">Colaborador</option>
+          <option value="nutricionista">Nutricionista</option>
+          <option value="gerente">Gerente</option>
           <option value="admin">Administrador</option>
         </select>
-        <button className="btn btn-success w-100">Cadastrar Usuário</button>
+
+        <button className="btn btn-success w-100">Cadastrar</button>
       </form>
 
       {mensagem && <p className="mt-3">{mensagem}</p>}
 
-      <hr />
-
-      {/* Lista de colaboradores */}
-      <ul className="list-group">
-        {colaboradores.map(c => (
-          <li key={c.id} className="list-group-item d-flex justify-content-between align-items-center">
+      <ul className="list-group mt-4">
+        {colaboradores.map((c) => (
+          <li
+            key={c.id}
+            className="list-group-item d-flex justify-content-between"
+          >
             <div>
-              {editando?.id === c.id ? (
-                <>
-                  <input className="form-control mb-1" value={editNome} onChange={e => setEditNome(e.target.value)} />
-                  <input className="form-control mb-1" value={editEmail} onChange={e => setEditEmail(e.target.value)} />
-                  <input className="form-control mb-1" value={editTelefone} onChange={e => setEditTelefone(e.target.value)} />
-                  <button className="btn btn-primary btn-sm me-2 mt-1" onClick={salvarEdicao}>Salvar</button>
-                  <button className="btn btn-secondary btn-sm mt-1" onClick={() => setEditando(null)}>Cancelar</button>
-                </>
-              ) : (
-                <>
-                  <strong>{c.nome}</strong> — {c.email} ({c.tipo}) — {c.telefone}
-                  {c.senha === "123456" && (
-                    <span className="badge bg-warning ms-2">Senha padrão</span>
-                  )}
-                </>
-              )}
+              <strong>{c.nome}</strong> — {c.email} <b>({c.tipo})</b>
             </div>
-            {editando?.id !== c.id && (
-              <div>
-                <button className="btn btn-warning btn-sm me-2" onClick={() => abrirEdicao(c)}>Editar</button>
-                <button className="btn btn-danger btn-sm me-2" onClick={() => excluirColaborador(c.id)}>Excluir</button>
-                <button className="btn btn-secondary btn-sm" onClick={() => resetarSenha(c)}>Resetar Senha</button>
-              </div>
-            )}
+            <div>
+              <button
+                className="btn btn-warning btn-sm me-2"
+                onClick={() => abrirEdicao(c)}
+              >
+                Editar
+              </button>
+
+              <button
+                className="btn btn-info btn-sm me-2"
+                onClick={() => resetarSenha(c.id)}
+              >
+                Resetar Senha
+              </button>
+
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={() =>
+                  c.tipo === "nutricionista"
+                    ? excluirVinculoNutricionista(c.id)
+                    : excluirColaborador(c.id)
+                }
+              >
+                Excluir
+              </button>
+            </div>
           </li>
         ))}
       </ul>

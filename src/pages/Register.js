@@ -28,8 +28,6 @@ function Register() {
         tipo: "admin", // Identifica como administrador
         criadoEm: new Date(),
       });
-
-      alert("Usuário cadastrado! Agora cadastre o estabelecimento.");
       navigate("/cadastro-estabelecimento");
     } catch (error) {
       setErro(error.message);

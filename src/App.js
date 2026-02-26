@@ -6,7 +6,7 @@ import "./App.css";
 import Footer from "./components/Footer";
 import Navbar from "./components/Navbar";
 import PrivateRoute from "./components/PrivateRoute";
-import { AuthProvider } from "./context/AuthContext"; // ✅ Caminho corrigido
+import { AuthProvider } from "./context/AuthContext";
 import CadastroEstabelecimento from "./pages/CadastroEstabelecimento";
 import CadastroUsuario from "./pages/CadastroUsuario";
 import CategoriaDetalhe from "./pages/CategoriaDetalhe";
@@ -14,14 +14,15 @@ import Categorias from "./pages/Categorias";
 import Colaboradores from "./pages/Colaboradores";
 import ControleEstoque from "./pages/ControleEstoque";
 import Estoque from "./pages/Estoque";
+import EstoqueNutricionista from "./pages/EstoqueNutricionista";
 import Fornecedores from "./pages/Fornecedores";
 import HistoricoEstoque from "./pages/HistoricoEstoque";
 import HomeColaborador from "./pages/HomeColaborador";
+import HomeNutricionista from "./pages/HomeNutricionista";
 import Login from "./pages/Login";
 import PainelAdmin from "./pages/PainelAdmin";
 import PainelColaborador from "./pages/PainelColaborador";
 import RegistrarSaidas from "./pages/RegistrarSaidas";
-
 
 function App() {
   return (
@@ -36,8 +37,9 @@ function App() {
 
               {/* ROTA DE LOGIN */}
               <Route path="/login" element={<Login />} />
+              <Route path="/kitchenmanager" element={<Login />} />
              <Route
-                path="/admin/estabelecimento/:id/historico-estoque"
+                path="/admin/estabelecimento/:estabelecimentoId/historico-estoque"
                 element={<HistoricoEstoque />}
               />
 
@@ -49,14 +51,16 @@ function App() {
               <Route path="/cadastro-usuario" element={<CadastroUsuario />} />
               <Route path="/cadastro-estabelecimento" element={<CadastroEstabelecimento />} />
               <Route path="/painel-colaborador" element={<PainelColaborador />} />
+              <Route path="/home-nutricionista" element={<HomeNutricionista />} />
               <Route path="/colaboradores" element={<Colaboradores />} />
               <Route path="/controle-estoque/:estabelecimentoId" element={<ControleEstoque />} />
-              <Route path="/estoque" element={<Estoque />} />
-              <Route path="/registrar-saidas" element={<RegistrarSaidas/>} />
+              <Route path="/admin/estabelecimento/:estabelecimentoId/estoque" element={<Estoque />} />
+              <Route  path="/admin/estabelecimento/:estabelecimentoId/registrar-saidas" element={<RegistrarSaidas/>} />
               <Route path="/home-colaborador" element={<HomeColaborador />} />
-
+              <Route path="/estoque-nutricionista/:id" element={<EstoqueNutricionista />}
+/>
               <Route
-                path="/admin/estabelecimento/:id/categorias"
+                path="/admin/estabelecimento/:estabelecimentoId/categorias"
                 element={<PrivateRoute element={<Categorias />} />}
               />
               <Route

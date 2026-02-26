@@ -8,6 +8,7 @@ import { db } from "../firebase/firebaseConfig";
 function NavigationBar() {
   const { user: usuario, logout } = useAuth();
   const [tipo, setTipo] = useState(null);
+  const [role, setRole] = useState(null);
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -18,6 +19,8 @@ function NavigationBar() {
   const handleHomeRedirect = () => {
     if (tipo === "admin") {
       navigate("/admin");
+    } else if (tipo === "nutricionista" || role === "nutricionista") {
+      navigate("/home-nutricionista");
     } else if (tipo === "colaborador") {
       navigate("/painel-colaborador");
     } else {
@@ -37,7 +40,7 @@ function NavigationBar() {
         const snap = await getDoc(docRef);
 
         if (snap.exists()) {
-          setTipo(snap.data().tipo);
+          setTipo(snap.data().tipo) || setRole(snap.data().role);
         }
       } catch (error) {
         console.error("Erro ao carregar tipo de usuário:", error);

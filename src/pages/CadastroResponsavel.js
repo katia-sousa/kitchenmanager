@@ -48,7 +48,7 @@ function CadastroResponsavel() {
         criado_em: new Date(),
       });
 
-      alert("Cadastro realizado com sucesso! Agora cadastre o estabelecimento.");
+      //alert("Cadastro realizado com sucesso! Agora cadastre o estabelecimento.");
       navigate("/cadastro-estabelecimento");
     } catch (error) {
       console.error("Erro ao cadastrar responsável:", error);

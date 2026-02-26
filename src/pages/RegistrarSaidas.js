@@ -1,53 +1,47 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  query,
-  updateDoc,
-  where
-} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import BarcodeScannerComponent from "react-qr-barcode-scanner";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { db } from "../firebase/firebaseConfig";
-import { registrarHistorico } from "../services/estoqueService";
+
+import {
+  editarItemEstoque,
+  listarEstoque,
+  registrarHistorico,
+} from "../services/estoqueService";
 
 export default function RegistrarSaidas() {
   const { userData } = useAuth();
-  const estabelecimentoId = userData?.estabelecimentoId;
+  const { estabelecimentoId } = useParams();
 
   const [produtos, setProdutos] = useState([]);
   const [produtoSelecionado, setProdutoSelecionado] = useState(null);
   const [quantidadeSaida, setQuantidadeSaida] = useState("");
+  const [quantidades, setQuantidades] = useState({});
   const [busca, setBusca] = useState("");
   const [scaneando, setScaneando] = useState(false);
   const [mensagem, setMensagem] = useState("");
 
-  // 🔄 Carregar produtos do estoque
-  useEffect(() => {
+  // 🔄 CARREGAR ESTOQUE
+  const carregarProdutos = async () => {
     if (!estabelecimentoId) return;
+    const lista = await listarEstoque(estabelecimentoId);
+    setProdutos(lista);
+  };
 
-    async function carregarProdutos() {
-      const q = query(
-        collection(db, "estoque"),
-        where("estabelecimentoId", "==", estabelecimentoId)
-      );
-      const snap = await getDocs(q);
-      setProdutos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    }
-
+  useEffect(() => {
     carregarProdutos();
   }, [estabelecimentoId]);
 
-  // 🔍 Buscar produto por nome ou código de barras
+  // 🔍 BUSCAR PRODUTO
   const buscarProduto = (valor) => {
     if (!valor) return;
 
     const termo = valor.toLowerCase();
 
-    const produto = produtos.find(p =>
-      p.codigoBarras === valor ||
-      p.nome.toLowerCase().includes(termo)
+    const produto = produtos.find(
+      (p) =>
+        p.codigoBarras === valor ||
+        p.nome?.toLowerCase().includes(termo)
     );
 
     if (!produto) {
@@ -57,65 +51,90 @@ export default function RegistrarSaidas() {
 
     setProdutoSelecionado(produto);
     setQuantidadeSaida("");
-    setMensagem(`Produto selecionado: ${produto.nome}`);
+    setMensagem(`✅ Produto selecionado: ${produto.nome}`);
     setScaneando(false);
   };
 
-  // 📤 Registrar saída
-  const registrarSaida = async () => {
-    if (!produtoSelecionado) return;
+  // 🧠 FUNÇÃO CENTRAL DE SAÍDA
+  const processarSaida = async (produto, quantidadeDigitada) => {
+    const quantidade = quantidadeDigitada
+      ? Math.abs(Number(quantidadeDigitada))
+      : 1;
 
-    const quantidade = quantidadeSaida ? Number(quantidadeSaida) : 1;
-
-    if (quantidade > produtoSelecionado.quantidade) {
-      alert("Quantidade maior que o estoque disponível");
+    if (quantidade <= 0) {
+      alert("Quantidade inválida");
       return;
     }
 
-    const novaQuantidade = produtoSelecionado.quantidade - quantidade;
+    if (quantidade > produto.quantidade) {
+      alert("Quantidade maior que o estoque");
+      return;
+    }
 
-    await updateDoc(doc(db, "estoque", produtoSelecionado.id), {
-      quantidade: novaQuantidade
-    });
+    const novaQuantidade = produto.quantidade - quantidade;
 
-    await registrarHistorico(
-      estabelecimentoId,
-      "saida",
-      {
-        nome: produtoSelecionado.nome,
-        codigoBarras: produtoSelecionado.codigoBarras || "—",
-        quantidade,
-        antes: produtoSelecionado.quantidade,
-        depois: novaQuantidade
-      },
-      userData
-    );
+    try {
+      await editarItemEstoque(produto.id, {
+        quantidade: novaQuantidade,
+      });
 
-    setProdutoSelecionado(null);
-    setQuantidadeSaida("");
-    setBusca("");
-    setMensagem("✅ Saída registrada com sucesso");
+      await registrarHistorico(
+        estabelecimentoId,
+        "saida",
+        {
+          produtoId: produto.id,
+          nome: produto.nome,
+          quantidade,
+          antes: produto.quantidade,
+          depois: novaQuantidade,
+        },
+        userData
+      );
 
-    // 🔄 Recarregar estoque
-    const q = query(
-      collection(db, "estoque"),
-      where("estabelecimentoId", "==", estabelecimentoId)
-    );
-    const snap = await getDocs(q);
-    setProdutos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setMensagem(`✅ Saída registrada: ${produto.nome}`);
+
+      setProdutoSelecionado(null);
+      setQuantidadeSaida("");
+      setBusca("");
+
+      await carregarProdutos();
+    } catch (error) {
+      console.error(error);
+      setMensagem("❌ Erro ao registrar saída");
+    }
   };
+
+  // 📤 SAÍDA VIA PESQUISA / SCANNER
+  const registrarSaidaPesquisa = () => {
+    if (!produtoSelecionado) return;
+    processarSaida(produtoSelecionado, quantidadeSaida);
+  };
+
+  // 📤 SAÍDA VIA LISTA
+  const registrarSaidaLista = (produto) => {
+    const quantidade = quantidades[produto.id] || 1;
+    processarSaida(produto, quantidade);
+
+    setQuantidades((prev) => ({
+      ...prev,
+      [produto.id]: "",
+    }));
+  };
+
+  // 🔄 estoque atualizado para pesquisa
+  const produtoAtualizado = produtoSelecionado
+    ? produtos.find((p) => p.id === produtoSelecionado.id)
+    : null;
 
   return (
     <div className="container mt-4">
-      <h3>📤 Registrar Saída</h3>
-      <p><strong>Colaborador:</strong> {userData?.nome}</p>
+      <h3>📤 Registrar Saídas</h3>
 
-      {/* BUSCA */}
       <input
         className="form-control mb-2"
-        placeholder="Buscar por nome ou código de barras"
+        placeholder="Buscar por nome ou código"
         value={busca}
-        onChange={e => setBusca(e.target.value)}
+        onChange={(e) => setBusca(e.target.value)}
       />
 
       <button
@@ -132,7 +151,6 @@ export default function RegistrarSaidas() {
         {scaneando ? "Fechar Scanner" : "Escanear Código"}
       </button>
 
-      {/* SCANNER */}
       {scaneando && (
         <div className="mt-3">
           <BarcodeScannerComponent
@@ -145,55 +163,81 @@ export default function RegistrarSaidas() {
         </div>
       )}
 
-      {/* PRODUTO SELECIONADO */}
-      {produtoSelecionado && (
-        <div className="mt-4">
-          <p><strong>Produto:</strong> {produtoSelecionado.nome}</p>
-          <p><strong>Código de Barras:</strong> {produtoSelecionado.codigoBarras || "—"}</p>
-          <p><strong>Estoque Atual:</strong> {produtoSelecionado.quantidade}</p>
+      {produtoAtualizado && (
+        <div className="mt-4 border p-3 rounded">
+          <h5>{produtoAtualizado.nome}</h5>
+          <p>Estoque atual: {produtoAtualizado.quantidade}</p>
 
           <input
             type="number"
             className="form-control mb-2"
-            placeholder="Quantidade (padrão = 1)"
+            placeholder="Quantidade (padrão 1)"
             value={quantidadeSaida}
-            onChange={e => setQuantidadeSaida(e.target.value)}
-            min="1"
-            max={produtoSelecionado.quantidade}
+            onChange={(e) => setQuantidadeSaida(e.target.value)}
           />
 
-          <button className="btn btn-danger" onClick={registrarSaida}>
+          <button
+            className="btn btn-danger"
+            onClick={registrarSaidaPesquisa}
+          >
             Registrar Saída
           </button>
         </div>
       )}
 
-      {mensagem && <p className="mt-3">{mensagem}</p>}
-
       <hr />
 
-      {/* TABELA */}
-      <h5>Produtos em Estoque</h5>
+      <h5>📦 Estoque</h5>
       <table className="table table-striped">
         <thead>
           <tr>
             <th>Produto</th>
-            <th>Código de Barras</th>
             <th>Categoria</th>
-            <th>Quantidade</th>
+            <th>Qtd</th>
+            <th>Saída</th>
           </tr>
         </thead>
         <tbody>
-          {produtos.map(p => (
+          {produtos.map((p) => (
             <tr key={p.id}>
               <td>{p.nome}</td>
-              <td>{p.codigoBarras || "—"}</td>
               <td>{p.categoria}</td>
               <td>{p.quantidade}</td>
+              <td className="d-flex gap-2">
+                <button
+                  className="btn btn-outline-danger"
+                  onClick={() => registrarSaidaLista(p)}
+                >
+                  ➖
+                </button>
+
+                <input
+                  type="number"
+                  className="form-control"
+                  style={{ width: "80px" }}
+                  placeholder="1"
+                  value={quantidades[p.id] || ""}
+                  onChange={(e) =>
+                    setQuantidades({
+                      ...quantidades,
+                      [p.id]: e.target.value,
+                    })
+                  }
+                />
+
+                <button
+                  className="btn btn-danger"
+                  onClick={() => registrarSaidaLista(p)}
+                >
+                  Registrar
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {mensagem && <p className="mt-3">{mensagem}</p>}
     </div>
   );
 }

@@ -11,34 +11,30 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase/firebaseConfig";
 
-// Adicionar categoria
 export async function adicionarCategoria(estabelecimentoId, categoria) {
-  const ref = collection(db, "categorias");
-  await addDoc(ref, {
-    ...categoria,
+  return addDoc(collection(db, "categorias"), {
+    nome: categoria.nome,
     estabelecimentoId,
-    criado_em: serverTimestamp(), // ✅ Agora usa timestamp do servidor
+    criado_em: serverTimestamp(),
   });
 }
 
-// Listar categorias
 export async function listarCategorias(estabelecimentoId) {
+  if (!estabelecimentoId) return [];
+
   const q = query(
     collection(db, "categorias"),
     where("estabelecimentoId", "==", estabelecimentoId)
   );
+
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-// Editar categoria
-export async function editarCategoria(id, dadosAtualizados) {
-  const ref = doc(db, "categorias", id);
-  await updateDoc(ref, dadosAtualizados);
+export async function editarCategoria(id, dados) {
+  return updateDoc(doc(db, "categorias", id), dados);
 }
 
-// Excluir categoria
 export async function excluirCategoria(id) {
-  const ref = doc(db, "categorias", id);
-  await deleteDoc(ref);
+  return deleteDoc(doc(db, "categorias", id));
 }

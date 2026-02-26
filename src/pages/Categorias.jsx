@@ -1,7 +1,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // Contexto para pegar usuário logado
+import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import {
   adicionarCategoria,
@@ -11,36 +11,38 @@ import {
 } from "../services/categoriaService";
 
 function Categorias() {
-  const { id } = useParams(); // id do estabelecimento
-  const { userData } = useAuth(); // usuário logado
+  const { estabelecimentoId } = useParams(); // ✅ CORRETO
+  const { userData } = useAuth();
+
   const [categorias, setCategorias] = useState([]);
   const [nova, setNova] = useState({ nome: "" });
   const [editando, setEditando] = useState(null);
   const [nomeEstabelecimento, setNomeEstabelecimento] = useState("");
 
   useEffect(() => {
+    if (!estabelecimentoId) return; // ⛔ evita erro
     carregarCategorias();
     carregarEstabelecimento();
-  }, [id]);
+  }, [estabelecimentoId]);
 
-  // Carrega categorias
+  // 🔹 Carrega categorias
   const carregarCategorias = async () => {
     try {
-      const lista = await listarCategorias(id);
+      const lista = await listarCategorias(estabelecimentoId);
       setCategorias(lista);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
-      alert("Erro ao carregar categorias.");
     }
   };
 
-  // Carrega o nome do estabelecimento
+  // 🔹 Carrega nome do estabelecimento
   const carregarEstabelecimento = async () => {
     try {
-      const estRef = doc(db, "estabelecimentos", id);
-      const estSnap = await getDoc(estRef);
-      if (estSnap.exists()) {
-        setNomeEstabelecimento(estSnap.data().nome);
+      const ref = doc(db, "estabelecimentos", estabelecimentoId);
+      const snap = await getDoc(ref);
+
+      if (snap.exists()) {
+        setNomeEstabelecimento(snap.data().nome);
       } else {
         setNomeEstabelecimento("Estabelecimento não encontrado");
       }
@@ -50,23 +52,22 @@ function Categorias() {
     }
   };
 
-  // Adicionar categoria
+  // ➕ Adicionar
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!nova.nome.trim()) return alert("Informe o nome da categoria!");
+    if (!nova.nome.trim()) return;
 
     try {
-      await adicionarCategoria(id, nova);
+      await adicionarCategoria(estabelecimentoId, nova);
       setNova({ nome: "" });
-      carregarCategorias();
-      alert("Categoria adicionada com sucesso!");
+      await carregarCategorias();
     } catch (error) {
       console.error("Erro ao adicionar categoria:", error);
       alert("Erro ao adicionar categoria.");
     }
   };
 
-  // Editar categoria
+  // ✏️ Editar
   const handleEdit = (cat) => {
     setEditando(cat);
     setNova({ nome: cat.nome });
@@ -74,54 +75,53 @@ function Categorias() {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!nova.nome.trim()) return alert("Informe o nome da categoria!");
+    if (!nova.nome.trim()) return;
 
     try {
-      await editarCategoria(editando.id, nova);
+      await editarCategoria(editando.id, { nome: nova.nome });
       setEditando(null);
       setNova({ nome: "" });
-      carregarCategorias();
-      alert("Categoria atualizada com sucesso!");
+      await carregarCategorias();
     } catch (error) {
       console.error("Erro ao editar categoria:", error);
-      alert("Erro ao atualizar categoria.");
     }
   };
 
-  // Excluir categoria
-  const handleDelete = async (idCat) => {
+  // 🗑️ Excluir
+  const handleDelete = async (id) => {
     if (!window.confirm("Deseja realmente excluir esta categoria?")) return;
     try {
-      await excluirCategoria(idCat);
-      carregarCategorias();
-      alert("Categoria excluída com sucesso!");
+      await excluirCategoria(id);
+      await carregarCategorias();
     } catch (error) {
       console.error("Erro ao excluir categoria:", error);
-      alert("Erro ao excluir categoria.");
     }
   };
 
   return (
     <div className="container mt-4">
       <h3>Categorias</h3>
-      <p className="text-muted mb-2">
+
+      <p className="text-muted">
         Estabelecimento: <strong>{nomeEstabelecimento}</strong>
       </p>
-      <p className="text-muted mb-3">
-        Usuário logado: <strong>{userData?.nome || "Funcionário"}</strong>
+
+      <p className="text-muted">
+        Usuário: <strong>{userData?.nome}</strong>
       </p>
 
       <form onSubmit={editando ? handleUpdate : handleAdd} className="mb-3">
         <input
-          placeholder="Nome da categoria"
           className="form-control mb-2"
+          placeholder="Nome da categoria"
           value={nova.nome}
           onChange={(e) => setNova({ nome: e.target.value })}
-          required
         />
+
         <button className="btn btn-success w-100">
           {editando ? "Salvar Alterações" : "Adicionar Categoria"}
         </button>
+
         {editando && (
           <button
             type="button"
@@ -131,7 +131,7 @@ function Categorias() {
               setNova({ nome: "" });
             }}
           >
-            Cancelar Edição
+            Cancelar
           </button>
         )}
       </form>
@@ -143,7 +143,7 @@ function Categorias() {
           {categorias.map((c) => (
             <li
               key={c.id}
-              className="list-group-item d-flex justify-content-between align-items-center"
+              className="list-group-item d-flex justify-content-between"
             >
               <strong>{c.nome}</strong>
               <div>

@@ -1,22 +1,51 @@
 import { signOut } from "firebase/auth";
-import { useEffect } from "react";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { auth } from "../firebase/firebaseConfig";
+import { auth, db } from "../firebase/firebaseConfig";
 
 export default function PainelAdmin() {
   const navigate = useNavigate();
-  const { userData, loading } = useAuth();
+  const { user, userData, loading } = useAuth();
 
-  // ✅ Correção: Hooks sempre executam, mas lógica roda com condições
+  const [estabelecimentoId, setEstabelecimentoId] = useState(null);
+  const nomeUsuario = userData?.nome || "Administrador";
+
+  // 🔐 Garante que só admin entra
   useEffect(() => {
     if (!loading && userData?.tipo !== "admin") {
       navigate("/login");
     }
   }, [loading, userData, navigate]);
 
-  const estabelecimentoId = userData?.estabelecimentoId || null;
-  const nomeUsuario = userData?.nome || "Administrador";
+  // 🔗 Busca estabelecimento vinculado ao admin (admins[])
+  useEffect(() => {
+    const buscarEstabelecimento = async () => {
+      if (!user) return;
+
+      try {
+        const q = query(
+          collection(db, "estabelecimentos"),
+          where("admins", "array-contains", user.uid)
+        );
+
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          // 👉 usa o primeiro estabelecimento encontrado
+          setEstabelecimentoId(snapshot.docs[0].id);
+        } else {
+          setEstabelecimentoId(null);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar estabelecimento:", error);
+        setEstabelecimentoId(null);
+      }
+    };
+
+    buscarEstabelecimento();
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -56,32 +85,34 @@ export default function PainelAdmin() {
           </div>
         </div>
 
-        {/* ESTOQUE */}
+        {/* ESTOQUE ENTRADAS */}
         <div className="col-md-3">
           <div className="card text-center shadow p-3">
             <h5>📦 Estoque Entradas</h5>
             <p className="text-muted small">Controle e monitoramento</p>
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => navigate("/estoque")}
+              onClick={() => navigate(`/admin/estabelecimento/${estabelecimentoId}/estoque`)}
             >
               Acessar
             </button>
           </div>
         </div>
-        {/* ESTOQUE */}
+
+        {/* ESTOQUE SAÍDAS */}
         <div className="col-md-3">
           <div className="card text-center shadow p-3">
             <h5>📦 Estoque Saídas</h5>
             <p className="text-muted small">Controle e monitoramento</p>
             <button
               className="btn btn-primary btn-sm"
-              onClick={() => navigate("/registrar-saidas")}
+              onClick={() => navigate( `/admin/estabelecimento/${estabelecimentoId}/registrar-saidas`)}
             >
               Acessar
             </button>
           </div>
         </div>
+
         {/* HISTÓRICO DE ESTOQUE */}
         <div className="col-md-3">
           <div className="card text-center shadow p-3">
@@ -92,7 +123,7 @@ export default function PainelAdmin() {
               disabled={!estabelecimentoId}
               onClick={() =>
                 navigate(
-                  `/admin/estabelecimento/${estabelecimentoId}/historico-estoque`
+                  (`/admin/estabelecimento/${estabelecimentoId}/historico-estoque`)
                 )
               }
             >
@@ -105,6 +136,7 @@ export default function PainelAdmin() {
             )}
           </div>
         </div>
+
         {/* CATEGORIAS */}
         <div className="col-md-3">
           <div className="card text-center shadow p-3">
