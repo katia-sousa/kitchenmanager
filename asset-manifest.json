@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/kitchenmanager/static/css/main.6c39e4ca.css",
-    "main.js": "/kitchenmanager/static/js/main.63abd9e3.js",
+    "main.js": "/kitchenmanager/static/js/main.c58a160d.js",
     "static/js/453.0aa1ba92.chunk.js": "/kitchenmanager/static/js/453.0aa1ba92.chunk.js",
     "index.html": "/kitchenmanager/index.html",
     "main.6c39e4ca.css.map": "/kitchenmanager/static/css/main.6c39e4ca.css.map",
-    "main.63abd9e3.js.map": "/kitchenmanager/static/js/main.63abd9e3.js.map",
+    "main.c58a160d.js.map": "/kitchenmanager/static/js/main.c58a160d.js.map",
     "453.0aa1ba92.chunk.js.map": "/kitchenmanager/static/js/453.0aa1ba92.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.6c39e4ca.css",
-    "static/js/main.63abd9e3.js"
+    "static/js/main.c58a160d.js"
   ]
 }
