@@ -32,42 +32,68 @@ function App() {
           <Navbar />
           <main className="flex-grow-1 container py-4">
             <Routes>
-             {/* REDIRECIONA "/" para login */}
-             <Route path="/" element={<Login />} />
-
-              {/* ROTA DE LOGIN */}
+              {/* LOGIN */}
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route
-                  path="/admin/estabelecimento/:estabelecimentoId/historico-estoque"
-                  element={<HistoricoEstoque />}
-                />
 
+              {/* ROTAS PROTEGIDAS */}
               <Route
                 path="/admin"
                 element={<PrivateRoute element={<PainelAdmin />} />}
               />
 
-              <Route path="/cadastro-usuario" element={<CadastroUsuario />} />
-              <Route path="/cadastro-estabelecimento" element={<CadastroEstabelecimento />} />
-              <Route path="/painel-colaborador" element={<PainelColaborador />} />
-              <Route path="/home-nutricionista" element={<HomeNutricionista />} />
-              <Route path="/colaboradores" element={<Colaboradores />} />
-              <Route path="/controle-estoque/:estabelecimentoId" element={<ControleEstoque />} />
-              <Route path="/admin/estabelecimento/:estabelecimentoId/estoque" element={<Estoque />} />
-              <Route  path="/admin/estabelecimento/:estabelecimentoId/registrar-saidas" element={<RegistrarSaidas/>} />
-              <Route path="/home-colaborador" element={<HomeColaborador />} />
-              <Route path="/estoque-nutricionista/:id" element={<EstoqueNutricionista />}
-/>
+              <Route
+                path="/admin/estabelecimento/:estabelecimentoId/historico-estoque"
+                element={<PrivateRoute element={<HistoricoEstoque />} />}
+              />
+
               <Route
                 path="/admin/estabelecimento/:estabelecimentoId/categorias"
                 element={<PrivateRoute element={<Categorias />} />}
+              />
+
+              <Route
+                path="/admin/estabelecimento/:estabelecimentoId/estoque"
+                element={<PrivateRoute element={<Estoque />} />}
+              />
+
+              <Route
+                path="/admin/estabelecimento/:estabelecimentoId/registrar-saidas"
+                element={<PrivateRoute element={<RegistrarSaidas />} />}
+              />
+
+              {/* OUTRAS ROTAS */}
+              <Route path="/cadastro-usuario" element={<CadastroUsuario />} />
+              <Route
+                path="/cadastro-estabelecimento"
+                element={<CadastroEstabelecimento />}
+              />
+              <Route
+                path="/painel-colaborador"
+                element={<PainelColaborador />}
+              />
+              <Route
+                path="/home-nutricionista"
+                element={<HomeNutricionista />}
+              />
+              <Route path="/colaboradores" element={<Colaboradores />} />
+              <Route
+                path="/controle-estoque/:estabelecimentoId"
+                element={<ControleEstoque />}
+              />
+              <Route path="/home-colaborador" element={<HomeColaborador />} />
+              <Route
+                path="/estoque-nutricionista/:id"
+                element={<EstoqueNutricionista />}
               />
               <Route
                 path="/admin/estabelecimento/:id/fornecedores"
                 element={<Fornecedores />}
               />
-              <Route path="/categoria-detalhes" element={<CategoriaDetalhe />} />
+              <Route
+                path="/categoria-detalhes"
+                element={<CategoriaDetalhe />}
+              />
             </Routes>
           </main>
           <Footer />
