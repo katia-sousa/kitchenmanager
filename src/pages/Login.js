@@ -54,7 +54,7 @@ export default function Login() {
             onChange={(e) => setSenha(e.target.value)}
             required
           />
-          <button className="btn btn-primary w-100 mb-2">Entrar</button>
+          <button type="submit" className="btn btn-primary w-100 mb-2">Entrar</button>
         </form>
         <div className="text-center mt-2">
           <small>

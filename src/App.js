@@ -1,6 +1,6 @@
 // src/App.js
 import "bootstrap/dist/css/bootstrap.min.css";
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Route, HashRouter as Router, Routes } from "react-router-dom";
 import "./App.css";
 
 import Footer from "./components/Footer";
@@ -33,15 +33,15 @@ function App() {
           <main className="flex-grow-1 container py-4">
             <Routes>
              {/* REDIRECIONA "/" para login */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+             <Route path="/" element={<Login />} />
 
               {/* ROTA DE LOGIN */}
+              <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/kitchenmanager" element={<Login />} />
-             <Route
-                path="/admin/estabelecimento/:estabelecimentoId/historico-estoque"
-                element={<HistoricoEstoque />}
-              />
+              <Route
+                  path="/admin/estabelecimento/:estabelecimentoId/historico-estoque"
+                  element={<HistoricoEstoque />}
+                />
 
               <Route
                 path="/admin"
