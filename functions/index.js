@@ -117,6 +117,7 @@ exports.criarColaborador = onCall(async (request) => {
         nome,
         email,
         telefone: telefone || "",
+        cpf: cpf || "",
         role: tipo,
         ...(tipo === "nutricionista" && { cpf }),
         atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
@@ -148,7 +149,9 @@ exports.criarColaborador = onCall(async (request) => {
       await db
         .collection("usuarios")
         .doc(uid)
-        .set({ estabelecimentoId }, { merge: true });
+     .set({
+  estabelecimentos: admin.firestore.FieldValue.arrayUnion(estabelecimentoId)
+}, { merge: true });  
     }
 
     return {
@@ -218,7 +221,7 @@ exports.resetarSenhaColaborador = onCall(async (request) => {
 
     const usuarioData = usuarioSnap.data();
 
-    /* 🚫 Impede reset de outro admin */
+    /* 🚫 Impede reset de outro admin 
     if (
       usuarioData.role === "admin" ||
       usuarioData.tipo === "admin"
@@ -227,23 +230,30 @@ exports.resetarSenhaColaborador = onCall(async (request) => {
         "permission-denied",
         "Não é permitido resetar senha de outro administrador"
       );
-    }
+    }*/
 
-    /* 🚫 Impede reset da própria senha */
+    /* 🚫 Impede reset da própria senha 
     if (uidAlvo === adminUid) {
       throw new HttpsError(
         "permission-denied",
         "Você não pode resetar sua própria senha por aqui"
       );
-    }
+    }*/
 
     /* 🔒 Valida mesmo estabelecimento */
-    if (usuarioData.estabelecimentoId !== adminData.estabelecimentoId) {
-      throw new HttpsError(
-        "permission-denied",
-        "Usuário não pertence ao seu estabelecimento"
-      );
-    }
+const adminEstabs = adminData.estabelecimentos || [];
+const userEstabs = usuarioData.estabelecimentos || [];
+
+const pertenceMesmoEstab = userEstabs.some(id =>
+  adminEstabs.includes(id)
+);
+
+if (!pertenceMesmoEstab) {
+  throw new HttpsError(
+    "permission-denied",
+    "Usuário não pertence ao seu estabelecimento"
+  );
+}
 
     /* =========================
        🔑 REDEFINE SENHA
