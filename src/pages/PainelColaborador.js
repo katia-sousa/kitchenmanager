@@ -12,34 +12,30 @@ function PainelColaborador() {
   const colaboradorNome = userData?.nome || "";
   const [estabelecimentoNome, setEstabelecimentoNome] = useState("Carregando...");
 
-  useEffect(() => {
-    const carregarEstabelecimento = async () => {
-      if (!userData) return;
+useEffect(() => {
+  const carregarEstabelecimento = async () => {
+    if (!userData?.estabelecimentos?.length) {
+      setEstabelecimentoNome("Nenhum estabelecimento vinculado");
+      return;
+    }
 
-      const estabelecimentoId = userData.estabelecimentoId;
+    try {
+      const ref = doc(db, "estabelecimentos", userData.estabelecimentos[0]);
+      const snap = await getDoc(ref);
 
-      if (!estabelecimentoId) {
-        setEstabelecimentoNome("ID não encontrado");
-        return;
+      if (snap.exists()) {
+        setEstabelecimentoNome(snap.data().nome || "Sem nome");
+      } else {
+        setEstabelecimentoNome("Estabelecimento não encontrado");
       }
+    } catch (erro) {
+      console.error("Erro:", erro);
+      setEstabelecimentoNome("Erro ao carregar");
+    }
+  };
 
-      try {
-        const ref = doc(db, "estabelecimentos", estabelecimentoId);
-        const snap = await getDoc(ref);
-
-        if (snap.exists()) {
-          setEstabelecimentoNome(snap.data().nome || "Sem nome cadastrado");
-        } else {
-          setEstabelecimentoNome("Estabelecimento não encontrado");
-        }
-      } catch (erro) {
-        console.error("Erro ao carregar estabelecimento:", erro);
-        setEstabelecimentoNome("Erro ao carregar");
-      }
-    };
-
-    carregarEstabelecimento();
-  }, [userData]);
+  carregarEstabelecimento();
+}, [userData]);
 
   return (
     <Card className="p-4 shadow-lg">
