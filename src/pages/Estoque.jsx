@@ -7,12 +7,14 @@ import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 import { listarCategorias } from "../services/categoriaService";
 import {
-  adicionarItemEstoque,
   editarItemEstoque,
   excluirItemEstoque,
   listarEstoque,
   registrarHistorico,
 } from "../services/estoqueService";
+import {
+  salvarProdutoInteligente
+} from "../services/produtoService";
 
 function Estoque() {
   const { userData } = useAuth();
@@ -29,6 +31,7 @@ function Estoque() {
     quantidade: "",
     categoria: "",
     codigoBarras: "",
+    marca: "",
   });
 
   const [editandoId, setEditandoId] = useState(null);
@@ -38,6 +41,7 @@ function Estoque() {
     quantidade: "",
     categoria: "",
     codigoBarras: "",
+    marca: "",
   });
 
   const [scannerAberto, setScannerAberto] = useState(false);
@@ -98,42 +102,62 @@ function Estoque() {
   ]);
 
   // ➕ ADICIONAR PRODUTO
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!novo.nome || !novo.quantidade || !novo.validade || !novo.categoria) {
-      return alert("Preencha todos os campos!");
+ const handleAdd = async (e) => {
+  e.preventDefault();
+
+  if (!novo.nome || !novo.quantidade || !novo.validade || !novo.categoria) {
+    return alert("Preencha todos os campos!");
+  }
+
+  try {
+    const resultado = await salvarProdutoInteligente(
+      estabelecimentoId,
+      novo,
+      userData
+    );
+
+    if (resultado.tipo === "somado") {
+      alert("Quantidade somada ao lote existente!");
+    } else if (resultado.tipo === "novo") {
+      alert("Novo produto criado!");
+    } else {
+      alert("Erro ao salvar produto.");
     }
 
-    try {
-      const produto = {
-        ...novo,
-        quantidade: Number(novo.quantidade),
-        criadoPor: userData,
-      };
+    setNovo({
+      nome: "",
+      validade: "",
+      quantidade: "",
+      categoria: "",
+      codigoBarras: "",
+      marca: "",
+    });
 
-      await adicionarItemEstoque(estabelecimentoId, produto);
-      await registrarHistorico(
-        estabelecimentoId,
-        "adicionado",
-        produto,
-        userData
-      );
+    carregarProdutos();
 
-      setNovo({
-        nome: "",
-        validade: "",
-        quantidade: "",
-        categoria: "",
-        codigoBarras: "",
-      });
-      setScannerAberto(false);
-      carregarProdutos();
-      alert("Produto adicionado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao adicionar produto:", error);
-      alert("Erro ao adicionar produto.");
+  } catch (error) {
+    console.error(error);
+    alert("Erro ao adicionar produto.");
+  }
+};
+
+  //Autopreenchimento
+  useEffect(() => {
+    if (!novo.codigoBarras) return;
+
+    const existente = produtos.find(
+      (p) => p.codigoBarras === novo.codigoBarras,
+    );
+
+    if (existente) {
+      setNovo((prev) => ({
+        ...prev,
+        nome: existente.nome,
+        categoria: existente.categoria,
+        marca: existente.marca || "",
+      }));
     }
-  };
+  }, [novo.codigoBarras, produtos]);
 
   // ✏️ INICIAR EDIÇÃO
   const iniciarEdicao = (prod) => {
@@ -156,7 +180,7 @@ function Estoque() {
         estabelecimentoId,
         "editado",
         { antes: produtoAntes, depois: editando },
-        userData
+        userData,
       );
 
       setEditandoId(null);
@@ -178,7 +202,7 @@ function Estoque() {
         estabelecimentoId,
         "deletado",
         produto,
-        userData
+        userData,
       );
 
       carregarProdutos();
@@ -246,6 +270,15 @@ function Estoque() {
               value={novo.quantidade}
               onChange={(e) => setNovo({ ...novo, quantidade: e.target.value })}
               required
+            />
+          </div>
+          <div className="mb-2">
+            <input
+              type="text"
+              placeholder="Marca"
+              className="form-control"
+              value={novo.marca}
+              onChange={(e) => setNovo({ ...novo, marca: e.target.value })}
             />
           </div>
           <div className="mb-2">
@@ -414,7 +447,14 @@ function Estoque() {
                   </>
                 ) : (
                   <>
-                    <td>{p.nome}</td>
+                    <td>
+                      {p.nome}
+                      {p.loteDiferente && (
+                        <span title="Lote com validade ou marca diferente">
+                          ⚠️
+                        </span>
+                      )}
+                    </td>
                     <td>{p.validade}</td>
                     <td>{p.quantidade}</td>
                     <td>{p.categoria}</td>
