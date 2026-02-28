@@ -30,6 +30,7 @@ export default function Colaboradores() {
   const [editCpf, setEditCpf] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editTelefone, setEditTelefone] = useState("");
+  const [editTipo, setEditTipo] = useState("colaborador");
 
   const functions = getFunctions(undefined, "southamerica-east1");
   const resetarSenhaFn = httpsCallable(functions, "resetarSenhaColaborador");
@@ -140,14 +141,14 @@ export default function Colaboradores() {
     }
   };
   const resetarSenha = async (uid) => {
-  try {
-    await resetarSenhaFn({ uidAlvo: uid });
-    setMensagem("Senha resetada com sucesso.");
-  } catch (error) {
-    console.error(error);
-    setMensagem("Erro ao resetar senha.");
-  }
-};
+    try {
+      await resetarSenhaFn({ uidAlvo: uid });
+      setMensagem("Senha resetada com sucesso.");
+    } catch (error) {
+      console.error("ERRO COMPLETO:", error);
+      setMensagem(`❌ ${error.message}`);
+    }
+  };
   // ✏️ Editar
   const abrirEdicao = (c) => {
     setEditando(c);
@@ -155,6 +156,7 @@ export default function Colaboradores() {
     setEditCpf(c.cpf || "");
     setEditEmail(c.email || "");
     setEditTelefone(c.telefone || "");
+    setEditTipo(c.tipo || c.role || "colaborador");
   };
 
   const salvarEdicao = async () => {
@@ -163,6 +165,8 @@ export default function Colaboradores() {
       cpf: editCpf,
       email: editEmail,
       telefone: editTelefone,
+      role: editTipo,
+      tipo: editTipo,
     });
 
     setEditando(null);
@@ -246,37 +250,94 @@ export default function Colaboradores() {
         {colaboradores.map((c) => (
           <li
             key={c.id}
-            className="list-group-item d-flex justify-content-between"
+            className="list-group-item d-flex justify-content-between align-items-center"
           >
-            <div>
-              <strong>{c.nome}</strong> — {c.email} <b>({c.tipo})</b>
-            </div>
-            <div>
-              <button
-                className="btn btn-warning btn-sm me-2"
-                onClick={() => abrirEdicao(c)}
-              >
-                Editar
-              </button>
+            {editando?.id === c.id ? (
+              // 🔹 MODO EDIÇÃO
+              <div className="w-100">
+                <input
+                  className="form-control mb-2"
+                  value={editNome}
+                  onChange={(e) => setEditNome(e.target.value)}
+                />
 
-              <button
-                className="btn btn-info btn-sm me-2"
-                onClick={() => resetarSenha(c.id)}
-              >
-                Resetar Senha
-              </button>
+                <input
+                  className="form-control mb-2"
+                  value={editCpf}
+                  onChange={(e) => setEditCpf(e.target.value)}
+                />
 
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() =>
-                  c.tipo === "nutricionista"
-                    ? excluirVinculoNutricionista(c.id)
-                    : excluirColaborador(c.id)
-                }
-              >
-                Excluir
-              </button>
-            </div>
+                <input
+                  className="form-control mb-2"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                />
+
+                <input
+                  className="form-control mb-2"
+                  value={editTelefone}
+                  onChange={(e) => setEditTelefone(e.target.value)}
+                />
+                <select
+                  className="form-control mb-2"
+                  value={editTipo}
+                  onChange={(e) => setEditTipo(e.target.value)}
+                >
+                  <option value="colaborador">Colaborador</option>
+                  <option value="gerente">Gerente</option>
+                  <option value="nutricionista">Nutricionista</option>
+                  <option value="admin">Administrador</option>
+                </select>
+
+                <button
+                  className="btn btn-success btn-sm me-2"
+                  onClick={salvarEdicao}
+                >
+                  Salvar
+                </button>
+
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setEditando(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              // 🔹 MODO NORMAL
+              <>
+                <div>
+                  <strong>{c.nome}</strong> — {c.email} <b>({c.tipo})</b>
+                </div>
+
+                <div>
+                  <button
+                    className="btn btn-warning btn-sm me-2"
+                    onClick={() => abrirEdicao(c)}
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    className="btn btn-info btn-sm me-2"
+                    onClick={() => resetarSenha(c.id)}
+                  >
+                    Resetar Senha
+                  </button>
+
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() =>
+                      c.tipo === "nutricionista"
+                        ? excluirVinculoNutricionista(c.id)
+                        : excluirColaborador(c.id)
+                    }
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>
