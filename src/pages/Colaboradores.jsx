@@ -250,8 +250,7 @@ export default function Colaboradores() {
         {colaboradores.map((c) => (
           <li
             key={c.id}
-            className="list-group-item d-flex justify-content-between align-items-center"
-          >
+            className="list-group-item d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center">
             {editando?.id === c.id ? (
               // 🔹 MODO EDIÇÃO
               <div className="w-100">
@@ -310,23 +309,23 @@ export default function Colaboradores() {
                   <strong>{c.nome}</strong> — {c.email} <b>({c.tipo})</b>
                 </div>
 
-                <div>
+                <div className="d-flex flex-wrap gap-2 justify-content-end mt-2 mt-md-0">
                   <button
-                    className="btn btn-warning btn-sm me-2"
+                    className="btn btn-warning btn-sm flex-fill flex-md-grow-0"
                     onClick={() => abrirEdicao(c)}
                   >
                     Editar
                   </button>
 
                   <button
-                    className="btn btn-info btn-sm me-2"
+                    className="btn btn-warning btn-sm flex-fill flex-md-grow-0"
                     onClick={() => resetarSenha(c.id)}
                   >
                     Resetar Senha
                   </button>
 
                   <button
-                    className="btn btn-danger btn-sm"
+                    className="btn btn-warning btn-sm flex-fill flex-md-grow-0"
                     onClick={() =>
                       c.tipo === "nutricionista"
                         ? excluirVinculoNutricionista(c.id)
