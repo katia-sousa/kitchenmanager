@@ -21,7 +21,7 @@ function NavigationBar() {
       navigate("/admin");
     } else if (tipo === "nutricionista" || role === "nutricionista") {
       navigate("/home-nutricionista");
-    } else if (tipo === "colaborador") {
+    } else if (tipo === "colaborador"|| role === "colaborador") {
       navigate("/painel-colaborador");
     } else {
       navigate("/");
