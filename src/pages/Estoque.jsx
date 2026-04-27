@@ -105,10 +105,10 @@ function Estoque() {
  const handleAdd = async (e) => {
   e.preventDefault();
 
-  if (!novo.nome || !novo.quantidade || !novo.validade || !novo.categoria) {
+  if (!novo.nome || !novo.quantidade || !novo.validade || !novo.categoria ||!novo.marca) {
     return alert("Preencha todos os campos!");
-  }
-
+  } 
+  
   try {
     const resultado = await salvarProdutoInteligente(
       estabelecimentoId,
@@ -353,6 +353,7 @@ function Estoque() {
           <thead>
             <tr>
               <th>Nome</th>
+              <th>Marca</th>
               <th>Validade</th>
               <th>Qtde</th>
               <th>Categoria</th>
@@ -372,6 +373,16 @@ function Estoque() {
                         value={editando.nome}
                         onChange={(e) =>
                           setEditando({ ...editando, nome: e.target.value })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={editando.marca || ""}
+                        onChange={(e) =>
+                          setEditando({ ...editando, marca: e.target.value })
                         }
                       />
                     </td>
@@ -455,6 +466,7 @@ function Estoque() {
                         </span>
                       )}
                     </td>
+                    <td>{p.marca}</td>
                     <td>{p.validade}</td>
                     <td>{p.quantidade}</td>
                     <td>{p.categoria}</td>
