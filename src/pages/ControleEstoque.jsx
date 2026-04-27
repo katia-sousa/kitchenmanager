@@ -1,12 +1,13 @@
 // src/pages/ControleEstoque.jsx
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../firebase/firebaseConfig";
 
 function ControleEstoque() {
   const { userData } = useAuth();
-  const estabelecimentoId = userData?.estabelecimentoId;
+  const { estabelecimentoId } = useParams();
 
   const [estabelecimento, setEstabelecimento] = useState(null);
   const [produtos, setProdutos] = useState([]);
@@ -41,6 +42,7 @@ function ControleEstoque() {
           return {
             id: doc.id,
             nome: data.nome || "—",
+            marca: data.marca || "—",
             validade: data.validade || "—",
             quantidade: data.quantidade ?? 0,
             categoria: typeof data.categoria === "string" ? data.categoria : data.categoria?.nome || "—",
@@ -87,6 +89,7 @@ function ControleEstoque() {
           <thead>
             <tr>
               <th>Produto</th>
+              <th>Marca</th>
               <th>Categoria</th>
               <th>Validade</th>
               <th>Quantidade</th>
@@ -97,6 +100,7 @@ function ControleEstoque() {
             {produtos.map((p) => (
               <tr key={p.id}>
                 <td>{p.nome}</td>
+                <td>{p.marca}</td>
                 <td>{p.categoria}</td>
                 <td>{p.validade}</td>
                 <td>{p.quantidade}</td>
