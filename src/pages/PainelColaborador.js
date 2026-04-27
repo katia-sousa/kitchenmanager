@@ -11,6 +11,7 @@ function PainelColaborador() {
 
   const colaboradorNome = userData?.nome || "";
   const [estabelecimentoNome, setEstabelecimentoNome] = useState("Carregando...");
+  const [estabelecimentoId, setEstabelecimentoId] = useState(null);
 
 useEffect(() => {
   const carregarEstabelecimento = async () => {
@@ -25,6 +26,7 @@ useEffect(() => {
 
       if (snap.exists()) {
         setEstabelecimentoNome(snap.data().nome || "Sem nome");
+        setEstabelecimentoId(userData.estabelecimentos[0]);
       } else {
         setEstabelecimentoNome("Estabelecimento não encontrado");
       }
@@ -55,21 +57,23 @@ useEffect(() => {
         <Button
           variant="warning"
           className="me-2"
-          onClick={() => navigate("/estoque")}
+          onClick={() => navigate(`/admin/estabelecimento/${estabelecimentoId}/estoque`)}
         >
           Registrar Entrada
         </Button>
          <Button
           variant="danger"  // cor diferente para diferenciar saída
           className="me-2"
-          onClick={() => navigate("/registrar-saidas")}
+          onClick={() =>
+  navigate(`/admin/estabelecimento/${estabelecimentoId}/registrar-saidas`)
+}
         >
           Registrar Saída
         </Button>
 
         <Button
           variant="secondary"
-          onClick={() => navigate(`/controle-estoque/${userData?.estabelecimentoId}`)}
+          onClick={() => navigate(`/controle-estoque/${estabelecimentoId}`)}
         >
           Consultar Estoque
         </Button>
